@@ -15,9 +15,12 @@ contract SalesManager is Ownable {
 
 	Stat public stat;
 
-	uint public constant dateStart    = 1519819200;	//	2018-02-28T12:00:00+00:00
+	// NOTE: Testing-only
+	// -- uint public constant dateShift    = 5 days;
+	//
+	uint public constant dateStart    = 1519819200 /* - dateShift*/;	//	2018-02-28T12:00:00+00:00
 	uint public constant dateEndPRE   = dateStart + 6 weeks;
-	uint public constant dateStartICO = 1523880000;	//	2018-04-16T12:00:00+00:00
+	uint public constant dateStartICO = 1523880000 /*- dateShift*/;		//	2018-04-16T12:00:00+00:00
 	uint public constant dateEnd      = dateStartICO + 8 weeks;
 
 	uint public constant capPRE = 2500000 ether;
@@ -69,63 +72,63 @@ contract SalesManager is Ownable {
 	function buyTokens() internal {
 		uint256 tokens = 0;
 		uint256 tokensAmount = msg.value.mul(tokenPerEth);
+		uint256 bonus = 0;
 		uint256 tokensBonus = 0;
-		uint toReturn = 0;
 		uint256 balance = 0;
 		// Two stages logic
 		if (isPRE()) {
 			// Weekly bonuses
 			if ( now <= (dateStart + 1 weeks) ) {
-				tokensBonus = tokensAmount * 100 / 100;
-			} else if ( (dateStart + 1 weeks) > now && now <= (dateStart + 2 weeks) ) {
-				tokensBonus = tokensAmount *  90 / 100;
-			} else if ( (dateStart + 2 weeks) > now && now <= (dateStart + 3 weeks) ) {
-				tokensBonus = tokensAmount *  85 / 100;
-			} else if ( (dateStart + 3 weeks) > now && now <= (dateStart + 4 weeks)) {
-				tokensBonus = tokensAmount *  80 / 100;
-			} else if ( (dateStart + 4 weeks) > now && now <= (dateStart + 5 weeks)) {
-				tokensBonus = tokensAmount *  75 / 100;
+				bonus = 100;
+			} else if ( now > (dateStart + 1 weeks) && now <= (dateStart + 2 weeks) ) {
+				bonus =  90;
+			} else if ( now > (dateStart + 2 weeks) && now <= (dateStart + 3 weeks) ) {
+				bonus =  85;
+			} else if ( now > (dateStart + 3 weeks) && now <= (dateStart + 4 weeks)) {
+				bonus =  80;
+			} else if ( now > (dateStart + 4 weeks) && now <= (dateStart + 5 weeks)) {
+				bonus =  75;
 			} else {
-				tokensBonus = tokensAmount *  70 / 100;
+				bonus =  70;
 			}
+			// tokensBonus = tokensAmount * bonus / 100;
+			tokensBonus = tokensAmount.mul(bonus).div(100);
 			// Cap
 			balance = capPRE.sub(stat.raised);
 			tokens = tokensAmount.add(tokensBonus);
-			if (balance < tokens) {
-				toReturn = tokenPerEth.mul(tokens.sub(balance));
-				msg.sender.transfer(toReturn);
-				sendTokens(balance, msg.value - toReturn);
-			} else {
+			if (balance >= tokens) {
 				sendTokens(tokens, msg.value);
+			} else {
+				revert();
 			}
 		} else if (isICO()) {
 			// Weekly bonuses
 			if ( now <= (dateStartICO + 1 weeks) ) {
-				tokensBonus = tokensAmount *  50 / 100;
-			} else if ( (dateStartICO + 1 weeks) > now && now <= (dateStartICO + 2 weeks) ) {
-				tokensBonus = tokensAmount *  45 / 100;
-			} else if ( (dateStartICO + 2 weeks) > now && now <= (dateStartICO + 3 weeks) ) {
-				tokensBonus = tokensAmount *  40 / 100;
-			} else if ( (dateStartICO + 3 weeks) > now && now <= (dateStartICO + 4 weeks)) {
-				tokensBonus = tokensAmount *  35 / 100;
-			} else if ( (dateStartICO + 4 weeks) > now && now <= (dateStartICO + 5 weeks)) {
-				tokensBonus = tokensAmount *  30 / 100;
-			} else if ( (dateStartICO + 5 weeks) > now && now <= (dateStartICO + 6 weeks)) {
-				tokensBonus = tokensAmount *  25 / 100;
-			} else if ( (dateStartICO + 6 weeks) > now && now <= (dateStartICO + 7 weeks)) {
-				tokensBonus = tokensAmount *  20 / 100;
+				bonus = 50;
+			} else if ( now > (dateStartICO + 1 weeks) && now <= (dateStartICO + 2 weeks) ) {
+				bonus = 45;
+			} else if ( now > (dateStartICO + 2 weeks) && now <= (dateStartICO + 3 weeks) ) {
+				bonus = 40;
+			} else if ( now > (dateStartICO + 3 weeks) && now <= (dateStartICO + 4 weeks)) {
+				bonus = 35;
+			} else if ( now > (dateStartICO + 4 weeks) && now <= (dateStartICO + 5 weeks)) {
+				bonus = 30;
+			} else if ( now > (dateStartICO + 5 weeks) && now <= (dateStartICO + 6 weeks)) {
+				bonus = 25;
+			} else if ( now > (dateStartICO + 6 weeks) && now <= (dateStartICO + 7 weeks)) {
+				bonus = 20;
 			} else {
-				tokensBonus = tokensAmount *  15 / 100;
+				bonus = 15;
 			}
+			// tokensBonus = tokensAmount * bonus / 100;
+			tokensBonus = tokensAmount.mul(bonus).div(100);
 			// Cap
 			balance = capICO.sub(stat.raised);
 			tokens = tokensAmount.add(tokensBonus);
-			if (balance < tokens) {
-				toReturn = tokenPerEth.mul(tokens.sub(balance));
-				msg.sender.transfer(toReturn);
-				sendTokens(balance, msg.value - toReturn);
-			} else {
+			if (balance >= tokens) {
 				sendTokens(tokens, msg.value);
+			} else {
+				revert();
 			}
 		} else {
 			revert();
@@ -143,7 +146,7 @@ contract SalesManager is Ownable {
 
 	// public onlyOwner
 
-	// For fiat investors support
+	// For fiat investors
 	function sendTokensManually(address _to, uint _amount) public onlyOwner {
 		require(_to != address(0));
 		SalesToken tokenHolder = SalesToken(tokenAddress);
@@ -152,12 +155,12 @@ contract SalesManager is Ownable {
 		stat.numTx += 1;
 	}
 
-	// Live change token price
+	// Сhange token price
 	function setTokenPerEth(uint _tokenPerEth) public onlyOwner {
 		tokenPerEth = _tokenPerEth;
 	}
 
-	// Live change minimal pay
+	// Сhange minimal pay
 	function setTokenMinEth(uint _tokenMinEth) public onlyOwner {
 		tokenMinEth = _tokenMinEth;
 	}
